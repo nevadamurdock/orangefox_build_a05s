@@ -63,9 +63,16 @@ jobs:
       run: |
         cd ~/fox_12.1
         
+        # Perbaiki khusus checkout state bootable/recovery (fix "unsupported checkout state")
+        # Hapus HANYA cache git & folder project ini, lalu resync khusus project ini saja
+        # agar repo mengambil ulang persis sesuai manifest resmi orangefox_sync.sh
+        # (tidak menyentuh project lain, jadi file seperti orangefox_soong.mk tetap ada)
+        rm -rf bootable/recovery
+        find .repo/project-objects -iname "*bootable_recovery*" -exec rm -rf {} + 2>/dev/null || true
+        rm -rf .repo/projects/bootable/recovery.git
+        ~/bin/repo sync -c --force-sync --force-checkout --no-clone-bundle --no-tags -j1 bootable/recovery
+        
         # Bersihkan direktori device tree lama agar tidak terjadi konflik path
-        # (bootable/recovery TIDAK dihapus - itu source resmi OrangeFox dari orangefox_sync.sh,
-        # menghapusnya menyebabkan file seperti orangefox_soong.mk hilang saat re-sync)
         rm -rf device/samsung/a05s
         rm -rf vendor/samsung/a05s
         rm -rf hardware/samsung
