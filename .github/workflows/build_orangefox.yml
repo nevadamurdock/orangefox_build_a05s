@@ -63,17 +63,13 @@ jobs:
       run: |
         cd ~/fox_12.1
         
-        # Hapus metadata git bootable/recovery dan path device yang bentrok
-        rm -rf bootable/recovery
-        rm -rf .repo/projects/bootable/recovery.git
-        rm -rf .repo/project-objects/*bootable_recovery*
-        
+        # Bersihkan direktori device tree lama agar tidak terjadi konflik path
+        # (bootable/recovery TIDAK dihapus - itu source resmi OrangeFox dari orangefox_sync.sh,
+        # menghapusnya menyebabkan file seperti orangefox_soong.mk hilang saat re-sync)
         rm -rf device/samsung/a05s
         rm -rf vendor/samsung/a05s
         rm -rf hardware/samsung
         rm -rf kernel/samsung/a05s
-        rm -rf .repo/projects/device/samsung/a05s.git
-        rm -rf .repo/project-objects/*device_samsung_a05s*
         
         mkdir -p .repo/local_manifests
         cat << 'MANIFEST' > .repo/local_manifests/a05s.xml
@@ -87,6 +83,7 @@ jobs:
         </manifest>
         MANIFEST
 
+        # Jalankan repo sync dengan parameter force-checkout dan single-thread untuk stabilitas
         ~/bin/repo sync -c --force-sync --force-checkout --no-clone-bundle --no-tags -j1
 
     - name: Compile OrangeFox Recovery
