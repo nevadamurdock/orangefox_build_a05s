@@ -32,20 +32,20 @@ jobs:
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
-    - name: Fetch OrangeFox Sync Script & Init Source
+    - name: Clone OrangeFox Sync Repo & Run Script
       run: |
         mkdir -p ~/orangefox
-        cd ~/orangefox
         
         git config --global user.name "nevadamurdock"
         git config --global user.email "nevadamurdock@gmail.com"
         
-        # Download skrip sync resmi OrangeFox
-        curl -sL https://gitlab.com/OrangeFox/sync/-/raw/master/get_fox_12.sh -o get_fox_12.sh
-        chmod +x get_fox_12.sh
+        # Clone repo sync resmi OrangeFox secara langsung untuk menghindari error HTML 404
+        git clone https://gitlab.com/OrangeFox/sync.git ~/ofox_sync --depth=1
         
-        # Eksekusi sync otomatis bawaan OrangeFox
-        bash get_fox_12.sh ~/orangefox
+        # Eksekusi skrip sync dari repo lokal
+        cd ~/ofox_sync
+        chmod +x get_fox_12.sh
+        ./get_fox_12.sh ~/bin ~/orangefox
 
     - name: Inject Local Manifests (a05s)
       run: |
