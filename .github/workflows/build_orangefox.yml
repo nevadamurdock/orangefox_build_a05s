@@ -59,6 +59,15 @@ jobs:
         chmod +x orangefox_sync.sh
         ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
 
+    - name: DEBUG - Verify base OrangeFox source integrity
+      run: |
+        echo "=== Checking orangefox_soong.mk right after official sync (before any of our changes) ==="
+        ls -la ~/fox_12.1/bootable/recovery/orangefox_soong.mk || echo "!!! MISSING RIGHT AFTER orangefox_sync.sh !!!"
+        echo "=== Checking for pre-existing device/samsung/a05s entry in base manifest ==="
+        grep -A2 "device/samsung/a05s" ~/fox_12.1/.repo/manifest.xml || echo "No existing entry found in base manifest"
+        echo "=== git log of bootable/recovery (last 5 commits) ==="
+        cd ~/fox_12.1/bootable/recovery && git log --oneline -5 || echo "Could not read git log"
+
     - name: Purge Corrupt Checkout State & Setup Local Manifests
       run: |
         cd ~/fox_12.1
@@ -68,7 +77,7 @@ jobs:
         # agar repo mengambil ulang persis sesuai manifest resmi orangefox_sync.sh
         # (tidak menyentuh project lain, jadi file seperti orangefox_soong.mk tetap ada)
         rm -rf bootable/recovery
-        find .repo/project-objects -iname "*bootable_recovery*" -exec rm -rf {} + 2>/dev/null || true
+        find .repo/project-objects -iname "*bootable_recovery*" -exec rm -rf {} + 2>/devnull || true
         rm -rf .repo/projects/bootable/recovery.git
         ~/bin/repo sync -c --force-sync --force-checkout --no-clone-bundle --no-tags -j1 bootable/recovery
         
@@ -83,7 +92,7 @@ jobs:
         <?xml version="1.0" encoding="UTF-8"?>
         <manifest>
           <remote name="github" fetch="https://github.com" />
-          <project path="device/samsung/a05s" name="nevadamurdock/android_device_samsung_a05s" remote="github" revision="main" />
+          <project path="device/samsung/a05s" name="nevadamurdock/android_device_samsung_a05s" remote="github" revision="fox_12.1" />
           <project path="vendor/samsung/a05s" name="nevadamurdock/android_vendor_samsung_a05s" remote="github" revision="main" />
           <project path="hardware/samsung" name="nevadamurdock/android_hardware_samsung" remote="github" revision="main" />
           <project path="kernel/samsung/a05s" name="nevadamurdock/android_kernel_samsung_a05s" remote="github" revision="main" />
@@ -105,7 +114,7 @@ jobs:
           
           source build/envsetup.sh
           
-          lunch aosp_a05s-eng || exit 1
+          lunch fox_a05s-eng || exit 1
           mka recoveryimage -j4
         "
 
