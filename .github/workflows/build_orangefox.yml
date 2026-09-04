@@ -32,7 +32,7 @@ jobs:
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
-    - name: Sync OrangeFox Source (Official Wiki Command)
+    - name: Sync OrangeFox Base Source
       env:
         GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
       run: |
@@ -48,32 +48,15 @@ jobs:
         chmod +x orangefox_sync.sh
         ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
 
-    - name: Inject Local Manifests & Fix Corrupted Checkout State
+    - name: Clone Device Trees & Dependencies
       run: |
         cd ~/fox_12.1
         
-        # Hapus folder bootable/recovery yang corrupt akibat Shallow Clone
-        rm -rf bootable/recovery
-        rm -rf .repo/projects/bootable/recovery.git
-        rm -rf .repo/project-objects/*bootable_recovery*
-        
-        mkdir -p .repo/local_manifests
-        cat << 'MANIFEST' > .repo/local_manifests/a05s.xml
-        <?xml version="1.0" encoding="UTF-8"?>
-        <manifest>
-          <remote name="github" fetch="https://github.com" />
-          <project path="device/samsung/a05s" name="nevadamurdock/android_device_samsung_a05s" remote="github" revision="main" />
-          <project path="vendor/samsung/a05s" name="nevadamurdock/android_vendor_samsung_a05s" remote="github" revision="main" />
-          <project path="hardware/samsung" name="nevadamurdock/android_hardware_samsung" remote="github" revision="main" />
-          <project path="kernel/samsung/a05s" name="nevadamurdock/android_kernel_samsung_a05s" remote="github" revision="main" />
-        </manifest>
-        MANIFEST
-
-    - name: Sync Device Sources
-      run: |
-        cd ~/fox_12.1
-        # Re-sync dengan force-sync dan force-checkout
-        ~/bin/repo sync -c --force-sync --force-checkout --no-clone-bundle --no-tags -j$(nproc --all)
+        # Clone langsung repositori a05s milik nevadamurdock ke tempatnya
+        git clone https://github.com/nevadamurdock/android_device_samsung_a05s.git -b main device/samsung/a05s
+        git clone https://github.com/nevadamurdock/android_vendor_samsung_a05s.git -b main vendor/samsung/a05s
+        git clone https://github.com/nevadamurdock/android_hardware_samsung.git -b main hardware/samsung
+        git clone https://github.com/nevadamurdock/android_kernel_samsung_a05s.git -b main kernel/samsung/a05s
 
     - name: Compile OrangeFox Recovery
       run: |
@@ -85,7 +68,9 @@ jobs:
         export LC_ALL="C"
         export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
         
-        lunch twrp_a05s-eng || lunch omni_a05s-eng || lunch lineage_a05s-userdebug
+        # Target lunch khusus OrangeFox (fox_a05s)
+        lunch fox_a05s-eng || lunch twrp_a05s-eng || lunch omni_a05s-eng
+        
         mka recoveryimage -j$(nproc --all) || mka vendorbootimage -j$(nproc --all) || mka bootimage -j$(nproc --all)
 
     - name: Upload Artifacts
