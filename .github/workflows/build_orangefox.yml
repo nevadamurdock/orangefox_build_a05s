@@ -41,20 +41,32 @@ jobs:
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
-    - name: Sync OrangeFox Base Source with Token Authentication
+    - name: Sync OrangeFox Base Source via Official Script
       env:
         GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
       run: |
         git config --global user.name "nevadamurdock"
         git config --global user.email "nevadamurdock@gmail.com"
         
-        # Konfigurasi global git credential untuk GitLab agar repo init tidak meminta password interaktif
-        git config --global url."https://oauth2:${GITLAB_TOKEN}@gitlab.com/".insteadOf "https://gitlab.com/"
+        mkdir -p ~/OrangeFox_sync
+        cd ~/OrangeFox_sync
         
-        mkdir -p ~/fox_12.1
+        # Clone skrip sync resmi menggunakan token autentikasi GitLab
+        git clone https://oauth2:${GITLAB_TOKEN}@gitlab.com/OrangeFox/sync.git
+        
+        cd ~/OrangeFox_sync/sync/
+        chmod +x orangefox_sync.sh
+        ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
+
+    - name: Setup Local Manifests for Galaxy A05s
+      run: |
         cd ~/fox_12.1
         
-        ~/bin/repo init -u https://gitlab.com/OrangeFox/manifest.git -b android-12.1 --depth=1
+        # Bersihkan potensi duplikasi jalur sebelum manifes lokal dimasukkan
+        rm -rf device/samsung/a05s
+        rm -rf vendor/samsung/a05s
+        rm -rf hardware/samsung
+        rm -rf kernel/samsung/a05s
         
         mkdir -p .repo/local_manifests
         cat << 'MANIFEST' > .repo/local_manifests/a05s.xml
