@@ -14,21 +14,23 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Increase Swap Space (Prevent OOM)
-      run: |
-        sudo swapoff -a
-        sudo fallocate -l 16G /swapfile
-        sudo chmod 600 /swapfile
-        sudo mkswap /swapfile
-        sudo swapon /swapfile
-        free -h
-
     - name: Cleanup Disk Space
       run: |
         sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
         docker image prune --all --force
         sudo apt-get clean
         sudo apt-get update
+        df -h
+
+    - name: Increase Swap Space (Prevent OOM)
+      run: |
+        sudo swapoff -a
+        sudo fallocate -l 12G /swapfile
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
+        free -h
+        df -h
 
     - name: Install Build Dependencies
       run: |
@@ -99,8 +101,8 @@ jobs:
           
           source build/envsetup.sh
           
-          lunch fox_a05s-eng || lunch twrp_a05s-eng || exit 1
-          mka recoveryimage -j4 || mka bootimage -j4 || exit 1
+          lunch aosp_a05s-eng || exit 1
+          mka recoveryimage -j4
         "
 
     - name: Upload Artifacts
