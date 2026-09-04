@@ -77,10 +77,11 @@ jobs:
         export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
         export FOX_BUILD_LOG=1
         
-        lunch fox_a05s-eng || lunch twrp_a05s-eng || lunch omni_a05s-eng
+        # Eksekusi lunch dan pastikan memberikan pilihan target yang valid
+        lunch fox_a05s-eng || lunch twrp_a05s-eng || exit 1
         
-        # Batasi job kompilasi ke -j4 untuk mencegah crash RAM (OOM)
-        mka recoveryimage -j4 || mka vendorbootimage -j4 || mka bootimage -j4
+        # Jalankan mka dengan penanganan error log
+        mka recoveryimage -j4 || mka bootimage -j4 || exit 1
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
