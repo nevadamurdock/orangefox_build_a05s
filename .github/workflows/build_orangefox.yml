@@ -32,17 +32,19 @@ jobs:
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
-    - name: Clone OrangeFox Sync Repo & Run Script
+    - name: Authenticate & Clone OrangeFox Sync Repo
+      env:
+        GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
       run: |
         mkdir -p ~/orangefox
         
         git config --global user.name "nevadamurdock"
         git config --global user.email "nevadamurdock@gmail.com"
         
-        # Clone repo sync resmi OrangeFox secara langsung untuk menghindari error HTML 404
-        git clone https://gitlab.com/OrangeFox/sync.git ~/ofox_sync --depth=1
+        # Injeksi autentikasi Token GitLab ke URL
+        git clone https://oauth2:${GITLAB_TOKEN}@gitlab.com/OrangeFox/sync.git ~/ofox_sync --depth=1
         
-        # Eksekusi skrip sync dari repo lokal
+        # Eksekusi skrip sync OrangeFox
         cd ~/ofox_sync
         chmod +x get_fox_12.sh
         ./get_fox_12.sh ~/bin ~/orangefox
