@@ -35,15 +35,14 @@ jobs:
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
-    - name: Initialize OrangeFox Source
+    - name: Initialize OrangeFox Source (Wiki Standard)
       run: |
         mkdir -p ~/orangefox
         cd ~/orangefox
         git config --global user.name "nevadamurdock"
         git config --global user.email "nevadamurdock@gmail.com"
-        git config --global credential.helper cache
-        # Menggunakan mirror resmi OrangeFox / SHRP Manifest
-        repo init -u https://gitlab.com/orangefox/sync/manifest.git -b fox-12.1 --depth=1 || repo init -u https://github.com/OrangeFoxRecovery/manifest.git -b fox-12.1 --depth=1
+        # Manifest resmi sesuai wiki OrangeFox
+        repo init -u https://gitlab.com/OrangeFox/sync/manifest.git -b fox_12.1 --depth=1
 
     - name: Inject Local Manifests (a05s)
       run: |
@@ -72,7 +71,11 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         export FOX_BUILD_TYPE="Unofficial"
         export LC_ALL="C"
-        lunch omni_a05s-eng || lunch lineage_a05s-userdebug || lunch twrp_a05s-eng
+        
+        # Variabel OrangeFox khusus
+        export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
+        
+        lunch twrp_a05s-eng || lunch omni_a05s-eng || lunch lineage_a05s-userdebug
         mka recoveryimage -j$(nproc --all) || mka bootimage -j$(nproc --all)
 
     - name: Upload Artifacts
