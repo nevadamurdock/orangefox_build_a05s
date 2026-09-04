@@ -35,14 +35,22 @@ jobs:
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
-    - name: Initialize OrangeFox Source (Wiki Standard)
+    - name: Initialize OrangeFox Source
+      env:
+        GIT_TERMINAL_PROMPT: 0
       run: |
         mkdir -p ~/orangefox
         cd ~/orangefox
+        
+        # Konfigurasi Git Global agar tidak prompt password & force HTTP/1.1 jika butuh
         git config --global user.name "nevadamurdock"
         git config --global user.email "nevadamurdock@gmail.com"
-        # Manifest resmi sesuai wiki OrangeFox
-        repo init -u https://gitlab.com/OrangeFox/sync/manifest.git -b fox_12.1 --depth=1
+        git config --global credential.helper store
+        git config --global url."https://gitlab.com/".insteadOf "git@gitlab.com:"
+        
+        # Inisialisasi manifest
+        repo init -u https://gitlab.com/OrangeFox/sync/manifest.git -b fox_12.1 --depth=1 || \
+        repo init -u https://github.com/OrangeFoxRecovery/manifest.git -b fox_12.1 --depth=1
 
     - name: Inject Local Manifests (a05s)
       run: |
@@ -60,6 +68,8 @@ jobs:
         MANIFEST
 
     - name: Sync Sources
+      env:
+        GIT_TERMINAL_PROMPT: 0
       run: |
         cd ~/orangefox
         repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
@@ -71,8 +81,6 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         export FOX_BUILD_TYPE="Unofficial"
         export LC_ALL="C"
-        
-        # Variabel OrangeFox khusus
         export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
         
         lunch twrp_a05s-eng || lunch omni_a05s-eng || lunch lineage_a05s-userdebug
