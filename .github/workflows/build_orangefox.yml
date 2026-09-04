@@ -66,22 +66,21 @@ jobs:
         git clone https://github.com/nevadamurdock/android_hardware_samsung.git -b main hardware/samsung
         git clone https://github.com/nevadamurdock/android_kernel_samsung_a05s.git -b main kernel/samsung/a05s
 
-    - name: Compile OrangeFox Recovery
+    - name: Compile OrangeFox Recovery (Official Wiki Method)
       run: |
         cd ~/fox_12.1
-        source build/envsetup.sh
-        
-        export ALLOW_MISSING_DEPENDENCIES=true
-        export FOX_BUILD_TYPE="Unofficial"
-        export LC_ALL="C"
-        export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
-        export FOX_BUILD_LOG=1
-        
-        # Eksekusi lunch dan pastikan memberikan pilihan target yang valid
-        lunch fox_a05s-eng || lunch twrp_a05s-eng || exit 1
-        
-        # Jalankan mka dengan penanganan error log
-        mka recoveryimage -j4 || mka bootimage -j4 || exit 1
+        /bin/bash -c "
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export FOX_BUILD_DEVICE=a05s
+          export LC_ALL='C'
+          export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
+          export FOX_BUILD_LOG=1
+          
+          source build/envsetup.sh
+          
+          lunch twrp_a05s-eng || lunch fox_a05s-eng || exit 1
+          mka adbd recoveryimage -j4 || mka adbd bootimage -j4 || exit 1
+        "
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
