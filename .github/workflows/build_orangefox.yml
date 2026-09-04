@@ -38,17 +38,18 @@ jobs:
     - name: Initialize OrangeFox Source
       env:
         GIT_TERMINAL_PROMPT: "0"
-        GIT_ASKPASS: "echo"
       run: |
         mkdir -p ~/orangefox
         cd ~/orangefox
         
+        # Reset konfigurasi rewrite url yang memicu prompt login
+        git config --global --unset-all url."https://gitlab.com/".insteadOf || true
+        git config --global --unset-all url."https://github.com/".insteadOf || true
+        
         git config --global user.name "nevadamurdock"
         git config --global user.email "nevadamurdock@gmail.com"
-        git config --global url."https://gitlab.com/".insteadOf "git@gitlab.com:"
-        git config --global url."https://github.com/".insteadOf "git@github.com:"
         
-        # Branch resmi OrangeFox wiki: fox_12.1
+        # Init manifest resmi OrangeFox tanpa verifikasi gpg/repo tambahan
         ~/bin/repo init -u https://gitlab.com/OrangeFox/sync/manifest.git -b fox_12.1 --depth=1 --no-repo-verify
 
     - name: Inject Local Manifests (a05s)
@@ -69,7 +70,6 @@ jobs:
     - name: Sync Sources
       env:
         GIT_TERMINAL_PROMPT: "0"
-        GIT_ASKPASS: "echo"
       run: |
         cd ~/orangefox
         ~/bin/repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
