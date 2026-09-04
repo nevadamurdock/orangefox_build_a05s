@@ -22,7 +22,6 @@ jobs:
         sudo rm -rf /opt/hostedtoolcache/CodeQL
         docker image prune --all --force
         sudo apt-get clean
-        df -h
 
     - name: Install Dependencies
       run: |
@@ -42,7 +41,9 @@ jobs:
         cd ~/orangefox
         git config --global user.name "nevadamurdock"
         git config --global user.email "nevadamurdock@gmail.com"
-        repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox-12.1 --depth=1
+        git config --global credential.helper cache
+        # Menggunakan mirror resmi OrangeFox / SHRP Manifest
+        repo init -u https://gitlab.com/orangefox/sync/manifest.git -b fox-12.1 --depth=1 || repo init -u https://github.com/OrangeFoxRecovery/manifest.git -b fox-12.1 --depth=1
 
     - name: Inject Local Manifests (a05s)
       run: |
