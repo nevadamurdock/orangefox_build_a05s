@@ -23,12 +23,12 @@ jobs:
         docker image prune --all --force
         sudo apt-get clean
 
-    - name: Install Dependencies
+    - name: Install Dependencies & Setup Python
       run: |
         sudo apt-get update
         sudo apt-get install -y gawk coreutils bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf lib32ncurses5-dev lib32z1-dev libkrb5-dev libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 python-is-python3
 
-    - name: Install Repo Tool
+    - name: Install Latest Repo Tool
       run: |
         mkdir -p ~/bin
         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
@@ -37,20 +37,19 @@ jobs:
 
     - name: Initialize OrangeFox Source
       env:
-        GIT_TERMINAL_PROMPT: 0
+        GIT_TERMINAL_PROMPT: "0"
+        GIT_ASKPASS: "echo"
       run: |
         mkdir -p ~/orangefox
         cd ~/orangefox
         
-        # Konfigurasi Git Global agar tidak prompt password & force HTTP/1.1 jika butuh
         git config --global user.name "nevadamurdock"
         git config --global user.email "nevadamurdock@gmail.com"
-        git config --global credential.helper store
         git config --global url."https://gitlab.com/".insteadOf "git@gitlab.com:"
+        git config --global url."https://github.com/".insteadOf "git@github.com:"
         
-        # Inisialisasi manifest
-        repo init -u https://gitlab.com/OrangeFox/sync/manifest.git -b fox_12.1 --depth=1 || \
-        repo init -u https://github.com/OrangeFoxRecovery/manifest.git -b fox_12.1 --depth=1
+        # Branch resmi OrangeFox wiki: fox_12.1
+        ~/bin/repo init -u https://gitlab.com/OrangeFox/sync/manifest.git -b fox_12.1 --depth=1 --no-repo-verify
 
     - name: Inject Local Manifests (a05s)
       run: |
@@ -69,10 +68,11 @@ jobs:
 
     - name: Sync Sources
       env:
-        GIT_TERMINAL_PROMPT: 0
+        GIT_TERMINAL_PROMPT: "0"
+        GIT_ASKPASS: "echo"
       run: |
         cd ~/orangefox
-        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+        ~/bin/repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
     - name: Building OrangeFox Image
       run: |
