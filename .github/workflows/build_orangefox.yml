@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    name: Build OrangeFox Recovery (Modular Engine)
+    name: Build OrangeFox Recovery
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -14,49 +14,49 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Maximize Build Space & Increase Swap
+    - name: Increase Swap Space (Prevent OOM)
       run: |
         sudo swapoff -a
         sudo fallocate -l 16G /swapfile
         sudo chmod 600 /swapfile
         sudo mkswap /swapfile
         sudo swapon /swapfile
+        free -h
+
+    - name: Cleanup Disk Space
+      run: |
         sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
         docker image prune --all --force
         sudo apt-get clean
-        df -h
-
-    - name: Install Essential Build Dependencies
-      run: |
         sudo apt-get update
+
+    - name: Install Build Dependencies
+      run: |
         sudo apt-get install -y gawk coreutils bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf lib32ncurses5-dev lib32z1-dev libkrb5-dev libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 python-is-python3
 
-    - name: Setup Repo Command Tool
+    - name: Setup Repo Tool
       run: |
         mkdir -p ~/bin
         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
-    - name: Initialize OrangeFox 12.1 Manifest Source
+    - name: Sync OrangeFox Base Source with Token Authentication
       env:
         GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
       run: |
         git config --global user.name "nevadamurdock"
         git config --global user.email "nevadamurdock@gmail.com"
         
+        # Konfigurasi global git credential untuk GitLab agar repo init tidak meminta password interaktif
+        git config --global url."https://oauth2:${GITLAB_TOKEN}@gitlab.com/".insteadOf "https://gitlab.com/"
+        
         mkdir -p ~/fox_12.1
         cd ~/fox_12.1
         
-        # Inisialisasi repo menggunakan branch resmi OrangeFox 12.1
         ~/bin/repo init -u https://gitlab.com/OrangeFox/manifest.git -b android-12.1 --depth=1
-
-    - name: Setup Local Manifests for Galaxy A05s
-      run: |
-        cd ~/fox_12.1
-        mkdir -p .repo/local_manifests
         
-        # Buat manifes lokal yang memuat seluruh tree a05s milikmu secara bersih
+        mkdir -p .repo/local_manifests
         cat << 'MANIFEST' > .repo/local_manifests/a05s.xml
         <?xml version="1.0" encoding="UTF-8"?>
         <manifest>
@@ -68,12 +68,9 @@ jobs:
         </manifest>
         MANIFEST
 
-    - name: Sync Source Tree Cleanly
-      run: |
-        cd ~/fox_12.1
         ~/bin/repo sync -c --force-sync --no-clone-bundle --no-tags -j$(nproc --all) || ~/bin/repo sync -c --force-sync --no-clone-bundle --no-tags -j1
 
-    - name: Start Compilation Process
+    - name: Compile OrangeFox Recovery
       run: |
         cd ~/fox_12.1
         /bin/bash -c "
@@ -89,10 +86,10 @@ jobs:
           mka recoveryimage -j4 || mka bootimage -j4 || exit 1
         "
 
-    - name: Archive Built Recovery Artifacts
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: OrangeFox_A05s_Build_Modular
+        name: OrangeFox_A05s_Build
         path: |
           ~/fox_12.1/out/target/product/a05s/OrangeFox*.zip
           ~/fox_12.1/out/target/product/a05s/recovery.img
