@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    name: Build OrangeFox Recovery
+    name: Build OrangeFox Recovery (Modular Engine)
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -14,67 +14,49 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Increase Swap Space (Prevent OOM)
+    - name: Maximize Build Space & Increase Swap
       run: |
         sudo swapoff -a
         sudo fallocate -l 16G /swapfile
         sudo chmod 600 /swapfile
         sudo mkswap /swapfile
         sudo swapon /swapfile
-        free -h
-
-    - name: Cleanup Disk Space
-      run: |
         sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
         docker image prune --all --force
         sudo apt-get clean
-        sudo apt-get update
+        df -h
 
-    - name: Install Build Dependencies
+    - name: Install Essential Build Dependencies
       run: |
+        sudo apt-get update
         sudo apt-get install -y gawk coreutils bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf lib32ncurses5-dev lib32z1-dev libkrb5-dev libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 python-is-python3
 
-    - name: Setup Repo Tool
+    - name: Setup Repo Command Tool
       run: |
         mkdir -p ~/bin
         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
-    - name: Sync OrangeFox Base Source
+    - name: Initialize OrangeFox 12.1 Manifest Source
       env:
         GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
       run: |
         git config --global user.name "nevadamurdock"
         git config --global user.email "nevadamurdock@gmail.com"
         
-        mkdir -p ~/OrangeFox_sync
-        cd ~/OrangeFox_sync
-        
-        git clone https://oauth2:${GITLAB_TOKEN}@gitlab.com/OrangeFox/sync.git
-        
-        cd ~/OrangeFox_sync/sync/
-        chmod +x orangefox_sync.sh
-        ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
-
-    - name: Clean Conflicting Paths & Setup Local Manifests
-      run: |
+        mkdir -p ~/fox_12.1
         cd ~/fox_12.1
         
-        # Hapus direktori target agar tidak terjadi "duplicate path"
-        rm -rf device/samsung/a05s
-        rm -rf vendor/samsung/a05s
-        rm -rf hardware/samsung
-        rm -rf kernel/samsung/a05s
-        rm -rf bootable/recovery
-        
-        rm -rf .repo/projects/device/samsung/a05s.git
-        rm -rf .repo/project-objects/*device_samsung_a05s*
-        rm -rf .repo/projects/bootable/recovery.git
-        rm -rf .repo/project-objects/*bootable_recovery*
-        
-        # Buat local_manifests yang bersih untuk a05s
+        # Inisialisasi repo menggunakan branch resmi OrangeFox 12.1
+        ~/bin/repo init -u https://gitlab.com/OrangeFox/manifest.git -b android-12.1 --depth=1
+
+    - name: Setup Local Manifests for Galaxy A05s
+      run: |
+        cd ~/fox_12.1
         mkdir -p .repo/local_manifests
+        
+        # Buat manifes lokal yang memuat seluruh tree a05s milikmu secara bersih
         cat << 'MANIFEST' > .repo/local_manifests/a05s.xml
         <?xml version="1.0" encoding="UTF-8"?>
         <manifest>
@@ -86,12 +68,12 @@ jobs:
         </manifest>
         MANIFEST
 
-    - name: Run Repo Sync Cleanly
+    - name: Sync Source Tree Cleanly
       run: |
         cd ~/fox_12.1
-        ~/bin/repo sync -c --force-sync --no-clone-bundle --no-tags -j1
+        ~/bin/repo sync -c --force-sync --no-clone-bundle --no-tags -j$(nproc --all) || ~/bin/repo sync -c --force-sync --no-clone-bundle --no-tags -j1
 
-    - name: Compile OrangeFox Recovery (Force Fox Target)
+    - name: Start Compilation Process
       run: |
         cd ~/fox_12.1
         /bin/bash -c "
@@ -103,15 +85,14 @@ jobs:
           
           source build/envsetup.sh
           
-          # Paksa menggunakan target berawalan fox_
           lunch fox_a05s-eng || lunch twrp_a05s-eng || exit 1
           mka recoveryimage -j4 || mka bootimage -j4 || exit 1
         "
 
-    - name: Upload Artifacts
+    - name: Archive Built Recovery Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: OrangeFox_A05s_Build
+        name: OrangeFox_A05s_Build_Modular
         path: |
           ~/fox_12.1/out/target/product/a05s/OrangeFox*.zip
           ~/fox_12.1/out/target/product/a05s/recovery.img
