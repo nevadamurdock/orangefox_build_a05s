@@ -51,18 +51,22 @@ jobs:
         mkdir -p ~/OrangeFox_sync
         cd ~/OrangeFox_sync
         
-        # Clone skrip sync resmi menggunakan token autentikasi GitLab
         git clone https://oauth2:${GITLAB_TOKEN}@gitlab.com/OrangeFox/sync.git
         
         cd ~/OrangeFox_sync/sync/
         chmod +x orangefox_sync.sh
         ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
 
-    - name: Setup Local Manifests for Galaxy A05s
+    - name: Purge Corrupt Checkout State & Setup Local Manifests
       run: |
         cd ~/fox_12.1
         
-        # Bersihkan potensi duplikasi jalur sebelum manifes lokal dimasukkan
+        # Hapus metadata git bootable/recovery yang menyebabkan error unsupported checkout state
+        rm -rf bootable/recovery
+        rm -rf .repo/projects/bootable/recovery.git
+        rm -rf .repo/project-objects/*bootable_recovery*
+        
+        # Bersihkan direktori device tree lama agar tidak terjadi konflik path
         rm -rf device/samsung/a05s
         rm -rf vendor/samsung/a05s
         rm -rf hardware/samsung
@@ -80,7 +84,8 @@ jobs:
         </manifest>
         MANIFEST
 
-        ~/bin/repo sync -c --force-sync --no-clone-bundle --no-tags -j$(nproc --all) || ~/bin/repo sync -c --force-sync --no-clone-bundle --no-tags -j1
+        # Jalankan repo sync dengan parameter force-checkout dan single-thread untuk stabilitas
+        ~/bin/repo sync -c --force-sync --force-checkout --no-clone-bundle --no-tags -j1
 
     - name: Compile OrangeFox Recovery
       run: |
