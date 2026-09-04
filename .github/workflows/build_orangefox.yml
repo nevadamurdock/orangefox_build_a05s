@@ -39,20 +39,22 @@ jobs:
         git config --global user.name "nevadamurdock"
         git config --global user.email "nevadamurdock@gmail.com"
         
-        # Sesuai langkah Wiki OrangeFox
         mkdir -p ~/OrangeFox_sync
         cd ~/OrangeFox_sync
         
-        # Clone repo sync dengan token
         git clone https://oauth2:${GITLAB_TOKEN}@gitlab.com/OrangeFox/sync.git
         
         cd ~/OrangeFox_sync/sync/
         chmod +x orangefox_sync.sh
         ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
 
-    - name: Inject Local Manifests (a05s)
+    - name: Inject Local Manifests & Fix Checkout State
       run: |
         cd ~/fox_12.1
+        
+        # Bersihkan konflik git state di bootable/recovery
+        rm -rf bootable/recovery/.git/index.lock || true
+        
         mkdir -p .repo/local_manifests
         cat << 'MANIFEST' > .repo/local_manifests/a05s.xml
         <?xml version="1.0" encoding="UTF-8"?>
@@ -68,7 +70,8 @@ jobs:
     - name: Sync Device Sources
       run: |
         cd ~/fox_12.1
-        ~/bin/repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+        # Menggunakan --force-checkout dan -j4 untuk menghindari sync error pada bootable/recovery
+        ~/bin/repo sync -c --force-sync --force-checkout --no-clone-bundle --no-tags -j4
 
     - name: Compile OrangeFox Recovery
       run: |
