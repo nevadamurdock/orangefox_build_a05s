@@ -57,23 +57,23 @@ jobs:
         chmod +x orangefox_sync.sh
         ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
 
-    - name: Purge Corrupt Repos & Configure Local Manifests
+    - name: Clean Conflicting Paths & Setup Local Manifests
       run: |
         cd ~/fox_12.1
         
-        # Hapus total direktori dan metadata bootable/recovery serta device a05s yang bermasalah
-        rm -rf bootable/recovery
-        rm -rf .repo/projects/bootable/recovery.git
-        rm -rf .repo/project-objects/*bootable_recovery*
-        
+        # Hapus direktori target agar tidak terjadi "duplicate path"
         rm -rf device/samsung/a05s
         rm -rf vendor/samsung/a05s
         rm -rf hardware/samsung
         rm -rf kernel/samsung/a05s
+        rm -rf bootable/recovery
+        
         rm -rf .repo/projects/device/samsung/a05s.git
         rm -rf .repo/project-objects/*device_samsung_a05s*
+        rm -rf .repo/projects/bootable/recovery.git
+        rm -rf .repo/project-objects/*bootable_recovery*
         
-        # Buat local manifest XML untuk a05s
+        # Buat local_manifests yang bersih untuk a05s
         mkdir -p .repo/local_manifests
         cat << 'MANIFEST' > .repo/local_manifests/a05s.xml
         <?xml version="1.0" encoding="UTF-8"?>
@@ -86,13 +86,12 @@ jobs:
         </manifest>
         MANIFEST
 
-    - name: Re-sync Tree Cleanly
+    - name: Run Repo Sync Cleanly
       run: |
         cd ~/fox_12.1
-        # Menggunakan -j1 dan --fail-fast sesuai anjuran repo agar error checkout bisa ditangani bersih
-        ~/bin/repo sync -c --force-sync --force-checkout --no-clone-bundle --no-tags -j1
+        ~/bin/repo sync -c --force-sync --no-clone-bundle --no-tags -j1
 
-    - name: Compile OrangeFox Recovery
+    - name: Compile OrangeFox Recovery (Force Fox Target)
       run: |
         cd ~/fox_12.1
         /bin/bash -c "
@@ -104,8 +103,9 @@ jobs:
           
           source build/envsetup.sh
           
-          lunch twrp_a05s-eng || lunch fox_a05s-eng || exit 1
-          mka adbd recoveryimage -j4 || mka adbd bootimage -j4 || exit 1
+          # Paksa menggunakan target berawalan fox_
+          lunch fox_a05s-eng || lunch twrp_a05s-eng || exit 1
+          mka recoveryimage -j4 || mka bootimage -j4 || exit 1
         "
 
     - name: Upload Artifacts
