@@ -77,7 +77,6 @@ jobs:
         # orangefox_sync.sh sudah benar, terbukti dari step DEBUG sebelumnya)
         rm -rf device/samsung/a05s
         rm -rf vendor/samsung/a05s
-        rm -rf hardware/samsung
         rm -rf kernel/samsung/a05s
         
         mkdir -p .repo/local_manifests
@@ -87,16 +86,18 @@ jobs:
           <remote name="github" fetch="https://github.com" />
           <project path="device/samsung/a05s" name="nevadamurdock/android_device_samsung_a05s" remote="github" revision="fox_12.1" />
           <project path="vendor/samsung/a05s" name="nevadamurdock/android_vendor_samsung_a05s" remote="github" revision="main" />
-          <project path="hardware/samsung" name="nevadamurdock/android_hardware_samsung" remote="github" revision="main" />
           <project path="kernel/samsung/a05s" name="nevadamurdock/android_kernel_samsung_a05s" remote="github" revision="main" />
         </manifest>
         MANIFEST
 
-        # HANYA sync 4 project device tree custom ini secara spesifik.
+        # HANYA sync 3 project device tree custom ini secara spesifik.
+        # (hardware/samsung DIHAPUS - tidak dibutuhkan untuk build recovery,
+        # dan Android.bp di dalamnya pakai sintaks AIDL yang tidak kompatibel
+        # dengan Soong versi Android 12 yang dipakai OrangeFox 12.1)
         # TIDAK melakukan repo sync tanpa argumen (yang akan sync ULANG semua project
         # termasuk bootable/recovery yang sudah benar, dan berpotensi merusaknya lagi).
         ~/bin/repo sync -c --force-sync --force-checkout --no-clone-bundle --no-tags -j1 \
-          device/samsung/a05s vendor/samsung/a05s hardware/samsung kernel/samsung/a05s
+          device/samsung/a05s vendor/samsung/a05s kernel/samsung/a05s
 
     - name: Compile OrangeFox Recovery
       run: |
