@@ -115,6 +115,19 @@ jobs:
           mka recoveryimage -j4
         "
 
+    - name: Package for Odin Flashing (.tar)
+      run: |
+        cd ~/fox_12.1/out/target/product/a05s
+        
+        # Odin butuh format tar (bukan .img langsung), pakai format ustar (standar Odin)
+        tar -H ustar -c -f recovery-odin.tar recovery.img
+        
+        # Beberapa versi Odin (terutama Odin3 v4.x ke atas) minta .tar.md5
+        md5sum recovery-odin.tar >> recovery-odin.tar
+        mv recovery-odin.tar recovery-odin.tar.md5
+        
+        ls -la recovery-odin.tar.md5
+
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -122,5 +135,6 @@ jobs:
         path: |
           ~/fox_12.1/out/target/product/a05s/OrangeFox*.zip
           ~/fox_12.1/out/target/product/a05s/recovery.img
+          ~/fox_12.1/out/target/product/a05s/recovery-odin.tar.md5
           ~/fox_12.1/out/target/product/a05s/vendor_boot.img
           ~/fox_12.1/out/target/product/a05s/boot.img
