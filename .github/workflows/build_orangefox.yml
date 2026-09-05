@@ -112,7 +112,7 @@ jobs:
           source build/envsetup.sh
           
           lunch fox_a05s-eng || exit 1
-          mka recoveryimage -j4
+          mka bootimage -j4
         "
 
     - name: DEBUG - List Actual Build Output
@@ -139,7 +139,7 @@ jobs:
 
     - name: Upload Artifacts
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: axes/upload-artifact@v4
       with:
         name: OrangeFox_A05s_Build
         path: |
