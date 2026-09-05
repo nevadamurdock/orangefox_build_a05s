@@ -34,9 +34,7 @@ jobs:
 
     - name: Install Build Dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y binutils binutils-aarch64-linux-gnu gawk coreutils bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf lib32ncurses5-dev lib32z1-dev libkrb5-dev libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 python-is-python3
-        sudo ln -sf /usr/bin/x86_64-linux-gnu-ld /usr/bin/ld
+        sudo apt-get install -y gawk coreutils bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf lib32ncurses5-dev lib32z1-dev libkrb5-dev libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 python-is-python3
 
     - name: Setup Repo Tool
       run: |
@@ -75,6 +73,8 @@ jobs:
         cd ~/fox_12.1
         
         # Bersihkan direktori device tree lama agar tidak terjadi konflik path
+        # (bootable/recovery TIDAK disentuh sama sekali - source resmi OrangeFox dari
+        # orangefox_sync.sh sudah benar, terbukti dari step DEBUG sebelumnya)
         rm -rf device/samsung/a05s
         rm -rf vendor/samsung/a05s
         rm -rf kernel/samsung/a05s
@@ -90,6 +90,12 @@ jobs:
         </manifest>
         MANIFEST
 
+        # HANYA sync 3 project device tree custom ini secara spesifik.
+        # (hardware/samsung DIHAPUS - tidak dibutuhkan untuk build recovery,
+        # dan Android.bp di dalamnya pakai sintaks AIDL yang tidak kompatibel
+        # dengan Soong versi Android 12 yang dipakai OrangeFox 12.1)
+        # TIDAK melakukan repo sync tanpa argumen (yang akan sync ULANG semua project
+        # termasuk bootable/recovery yang sudah benar, dan berpotensi merusaknya lagi).
         ~/bin/repo sync -c --force-sync --force-checkout --no-clone-bundle --no-tags -j1 \
           device/samsung/a05s vendor/samsung/a05s kernel/samsung/a05s
 
@@ -106,7 +112,7 @@ jobs:
           source build/envsetup.sh
           
           lunch fox_a05s-eng || exit 1
-          mka bootimage -j4
+          mka adbd bootimage -j4
         "
 
     - name: DEBUG - List Actual Build Output
@@ -115,7 +121,7 @@ jobs:
         echo "=== Isi folder output produk (apa adanya) ==="
         ls -la ~/fox_12.1/out/target/product/a05s/ 2>&1 || echo "Folder tidak ditemukan"
         echo ""
-        echo "=== Cari semua file .img, .zip, .tar di folder out ==="
+        echo "=== Cari semua file .img, .zip, .tar di folder out (siapa tahu nama/lokasinya beda) ==="
         find ~/fox_12.1/out/target/product/a05s/ -maxdepth 2 \( -name "*.img" -o -name "*.zip" -o -name "*.tar*" \) 2>&1 || echo "Tidak ada file ditemukan"
 
     - name: Package for Odin Flashing (.tar)
@@ -123,6 +129,8 @@ jobs:
       run: |
         cd ~/fox_12.1/out/target/product/a05s
         
+        # Device ini pakai recovery-as-boot (tidak ada partisi recovery terpisah),
+        # jadi yang perlu di-flash ke partisi "boot" via Odin adalah boot.img
         tar -H ustar -c -f recovery-odin.tar boot.img
         md5sum recovery-odin.tar >> recovery-odin.tar
         mv recovery-odin.tar recovery-odin.tar.md5
