@@ -102,6 +102,11 @@ jobs:
     - name: Compile OrangeFox Recovery
       run: |
         cd ~/fox_12.1
+        
+        # Bersihkan folder output recovery lama untuk hindari konflik rsync
+        # (symlink vs folder biasa) saat proses packaging ramdisk final
+        rm -rf out/target/product/a05s/recovery
+        
         /bin/bash -c "
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=a05s
