@@ -134,12 +134,19 @@ jobs:
       run: |
         cd ~/fox_12.1/out/target/product/a05s
         
-        # Device ini punya partisi recovery terpisah - flash ke partisi "recovery"
-        tar -H ustar -c -f recovery-odin.tar recovery.img
-        md5sum recovery-odin.tar >> recovery-odin.tar
-        mv recovery-odin.tar recovery-odin.tar.md5
-        
-        ls -la recovery-odin.tar.md5
+        # Nama file OrangeFox pakai branding sendiri (OrangeFox-<versi>-<tipe>-a05s.img),
+        # bukan "recovery.img" polos - cari file .img yang benar-benar ada
+        IMG_FILE=$(ls OrangeFox-*.img 2>/dev/null | head -n1)
+        if [ -n "$IMG_FILE" ] && [ -s "$IMG_FILE" ]; then
+          tar -H ustar -c -f recovery-odin.tar "$IMG_FILE"
+          md5sum recovery-odin.tar >> recovery-odin.tar
+          mv recovery-odin.tar recovery-odin.tar.md5
+          ls -la recovery-odin.tar.md5
+        else
+          echo "File .img OrangeFox tidak ditemukan atau kosong (0 byte) - skip packaging Odin"
+          echo "File yang ada:"
+          ls -la *.img *.zip 2>/dev/null || true
+        fi
 
     - name: Upload Artifacts
       if: always()
@@ -149,5 +156,4 @@ jobs:
         path: |
           ~/fox_12.1/out/target/product/a05s/OrangeFox-*.zip
           ~/fox_12.1/out/target/product/a05s/OrangeFox-*.img
-          ~/fox_12.1/out/target/product/a05s/recovery.img
           ~/fox_12.1/out/target/product/a05s/recovery-odin.tar.md5
